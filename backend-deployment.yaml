@@ -1,13 +1,13 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: backend-deployment
+  name: app-server-deploy
   namespace: dataviz-ns
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: backend
+      component: app-server
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -16,33 +16,33 @@ spec:
   template:
     metadata:
       labels:
-        app: backend
+        component: app-server
     spec:
       initContainers:
-      - name: init-backend
+      - name: setup-app-server
         image: busybox
-        command: ["sh", "-c", "echo Initializing backend... && sleep 10"]
+        command: ["sh", "-c", "echo Preparing app server... && sleep 10"]
       containers:
-      - name: backend
+      - name: main-app-server
         image: mongo:5.0
         env:
-        - name: APP_MODE
+        - name: RUN_MODE
           valueFrom:
             configMapKeyRef:
-              name: backend-config
-              key: APP_MODE
-        - name: DB_USER
+              name: app-server-config
+              key: RUN_MODE
+        - name: DATABASE_USER
           valueFrom:
             secretKeyRef:
-              name: backend-secret
-              key: DB_User
-        - name: DB_PASS
+              name: app-server-secret
+              key: DATABASE_USER
+        - name: DATABASE_PASS
           valueFrom:
             secretKeyRef:
-              name: backend-secret
-              key: DB_PASS
+              name: app-server-secret
+              key: DATABASE_PASS
         volumeMounts:
-        - name: shared-logs
+        - name: logs-shared
           mountPath: /var/log/shared
         resources:
           requests:
@@ -51,11 +51,11 @@ spec:
           limits:
             cpu: "500m"
             memory: "256Mi"
-      - name: sidecar-logger
+      - name: log-sidecar
         image: busybox
         command: ["sh", "-c", "while true; do date >> /var/log/shared/app.log; sleep 5; done"]
         volumeMounts:
-        - name: shared-logs
+        - name: logs-shared
           mountPath: /var/log/shared
         resources:
           requests:
@@ -65,10 +65,5 @@ spec:
             cpu: "200m"
             memory: "128Mi"
       volumes:
-      - name: shared-logs
+      - name: logs-shared
         emptyDir: {}
-        #Task 8: Rolling Update
-        #Perform a rolling update on the backend deployment 
-        #Change backend image version tag from latest to specific version or latest to another tag you create
-        #USe maxzSurge =1 maxUnavailable =0 strategy 
-        #Ensure zero downtime during the follout

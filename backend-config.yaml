@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: backend-config
+  name: app-server-config
   namespace: dataviz-ns
 data:
-  APP_MODE: production
+  RUN_MODE: production
