@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-deployment
+  namespace: dataviz-ns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      initContainers:
+      - name: init-backend
+        image: busybox
+        command: ["sh", "-c", "echo Initializing backend... && sleep 10"]
+      containers:
+      - name: backend
+        image: mongo:5.0
+        env:
+        - name: APP_MODE
+          valueFrom:
+            configMapKeyRef:
+              name: backend-config
+              key: APP_MODE
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: backend-secret
+              key: DB_User
+        - name: DB_PASS
+          valueFrom:
+            secretKeyRef:
+              name: backend-secret
+              key: DB_PASS
+        volumeMounts:
+        - name: shared-logs
+          mountPath: /var/log/shared
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "128Mi"
+          limits:
+            cpu: "500m"
+            memory: "256Mi"
+      - name: sidecar-logger
+        image: busybox
+        command: ["sh", "-c", "while true; do date >> /var/log/shared/app.log; sleep 5; done"]
+        volumeMounts:
+        - name: shared-logs
+          mountPath: /var/log/shared
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "64Mi"
+          limits:
+            cpu: "200m"
+            memory: "128Mi"
+      volumes:
+      - name: shared-logs
+        emptyDir: {}
+        #Task 8: Rolling Update
+        #Perform a rolling update on the backend deployment 
+        #Change backend image version tag from latest to specific version or latest to another tag you create
+        #USe maxzSurge =1 maxUnavailable =0 strategy 
+        #Ensure zero downtime during the follout
